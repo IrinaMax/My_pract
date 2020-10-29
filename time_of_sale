@@ -1,0 +1,118 @@
+#================================working with time=============================
+my script to predicting time when opti will be sold
+#work with train==================
+dd8 %>% head
+dd8$opty_age %>% mean
+dd8$close_date %>% head
+age <- dd8 %>% filter(status %in% c("Closed Won")) 
+age %>% dim
+age$opty_age %>% mean   # 72.70617
+age$opty_age %>% max
+age$opty_age %>% min
+age$opty_age %>% histogram 
+# castong all age by intervals
+age$tc <- as.factor(findInterval(age$opty_age, c(30, 90, 180, 360)))
+meanTime <-  as.vector(tapply(age$opty_age, age$tc, mean))
+meanTime
+age <- data.frame(age)
+
+# 2======================
+#I will try to split age by mean of every cathegory interval
+setDT(age)[opty_age <30, agegroup := "6"]
+age[opty_age>=30 & opty_age <90, agegroup := "54"]
+age[opty_age >= 90 & opty_age <180, agegroup := "127"]
+age[opty_age >=180 & opty_age <360, agegroup := "269"]
+age[opty_age >360, agegroup := "668"]
+age %>% head(100)
+age %>% str
+
+#predict time to close based on the formula and compare with actual
+age$pred_closetime <-  as.Date(age$opty_created_date) + as.numeric(age$agegroup)
+tab <- data.frame(predicted = age$pred_closetime, actual = as.Date(age$close_date))
+tab %>% head(20)
+tab$diff <- tab$predicted- tab$actual
+tab %>% head
+
+t_tab <- table(predicted = age$pred_closetime, actual = age$close_date)
+sum(diag(t_tab))/sum(t_tab)
+
+
+library(dplyr)
+# find the mean for every tc cathegory at mean time
+time <- tapply(age$opty_age, age$tc, mean)
+tmean <- union(age$opty_age, time)
+t <- data.frame(aggregate(opty_age~ tc, age, mean ))
+age1 <- age %>% dplyr::select(opty_age, tc)
+age1 %>% names
+age1 %>% dplyr::group_by(tc)
+age1 %>% group_by(age$tc) %>% count
+#age1 %>% group_by(tc) %>% merge(t, by = "tc", suffixes = c("","_avg"))
+# oradding avg to every row
+age1 <- merge(age1,t, by = "tc", suffixes = c("","_avg"))
+
+age$tc %>% histogram(main= " Histogram of date pending opportunities")
+as.numeric(age$agegroup) %>% histogram(main= " Histogram of time pending opportunities", col =rainbow(4))
+
+#par(mfrow = c(1,1))
+#boxplot((dd8$tc ~ dd8$opty_age  ), main="Fig.-1: Age range by time cathegory boxplot", col= rainbow(4))  # plot  ===========================
+
+# On the open opties========================================
+namesT <- dd8 %>% names  # creating vector with names to matching it with open opties
+forTime <- open[, names(open) %in% namesT]
+forTime %>% str
+dd_op
+opT <- cbind(pred.round, dd_op)
+
+opT$opty_created_date <- forTime$opty_created_date
+opT %>% head
+opT$tvp_01_commit %>% str
+opT$tvp_01_commit[is.na(opT$tvp_01_commit)] <- 0
+#opT <- dd.opN
+dd_op$opty_age %>% mean #488.2436
+
+opT <- opT %>% filter(opT$pred.round %in% c(1)) 
+opT %>% dim
+opT %>% str
+opT$opty_age %>% mean   # 167.507 is total avg
+opT$opty_age %>% max   # 763
+763-131
+(1325-167)/2   # max-mean /2
+opT$opty_age %>% histogram   # open opti histogram is different then close opties
+# castong all age by intervals
+opT$tc <- as.factor(findInterval(opT$opty_age, c(30, 90, 180, 360)))
+mean <-  as.numeric(round(tapply(opT$opty_age, opT$tc, mean)))
+mean 
+#I will try to split age by mean of every cathegory interval
+setDT(opT)[opty_age < 30, agegroup := mean[1]]
+opT[opty_age>=30 & opty_age <90, agegroup := mean[2] ]
+opT[opty_age >= 90 & opty_age <180, agegroup := mean[3]]
+opT[opty_age >=180 & opty_age <360, agegroup := mean[4]]
+opT[opty_age >360, agegroup := mean[5]]
+opT %>% head(100)
+merge(opT,t, by = "tc", suffixes = c("","_Cl_avg"))
+opT %>% str
+opT$agegroup <- as.factor(round(opT$agegroup))
+opT$agegroup %>% str
+# Method 3 lm
+age %>% str
+lmTime <- lm(age$opty_age~  company +opty_stg_other+  #tvp_01_commit + tc+
+               sum_item_annual_contract_value ,data=age)
+lmTime %>% summary
+opT1 <- data.frame(opT[,c(2,3,5,8,9,11,12)])
+opT1 %>% str
+#opT1 <- opT %>% dplyr::select(opT$company, opT$opty_stg_04_contract_closing, opT$opty_stg_other,opT$tvp_01_commit,opT$agegroup,opT$sum_item_annual_contract_value)
+# may be just opT ???
+opT %>% str
+predTime <-  predict(lmTime, opT, type = "response")
+opTime <- cbind(opT[,c(1,11,12,14,4)], predTime)
+opTime %>% head(50)
+#F1
+opTime$predDate <-  as.Date(opT$opty_created_date) + predTime
+#F2
+opTime$predDate2 <-  as.Date(opTime$opty_created_date) +opTime$opty_age +
+  abs(as.numeric(opTime$predTime)-opTime$opty_age)
+opTime %>% str
+opTime[,c(1,8)]
+#age1 <- merge(age1,t, by = "tc", suffixes = c("","_avg"))
+res %>% dim
+a <- merge(res, opTime[,c(1,8)], by ="pred.round", suffixes = c("x","predTime"))
