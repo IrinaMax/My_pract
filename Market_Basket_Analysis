@@ -1,0 +1,92 @@
+# Assosiation rules == Market Basket Analysis
+getwd()
+setwd("/Users/irinamax/Documents/R/Association_Rules/Association_Rules_rcode")
+
+#install.packages("pander")
+#install.packages("fpp2")
+library(pander)
+library(fpp2)
+library(dplyr)
+library("arulesViz") # for visualizing rules
+
+#install.packages("arules")
+data()
+library("arules") # Used for building association rules i.e. apriori algorithm
+data("Groceries") # loading the Groceries Data
+inspect(Groceries[1:10]) # showing only top 10 transactions
+class(Groceries) # Groceries is in transactions format
+str(Groceries)
+
+summary(Groceries) 
+
+itemFrequencyPlot(Groceries, topN = 20, mail = "\nTop 20 items purchased\n")
+crossTable(Groceries, measure = "support",  sort = T)
+
+crossTable(Groceries, measure = "support",  sort = T)[1:5, 1:5] %>% 
+  pander(split.table = Inf, round = 3)
+groc_rules <-  apriori(Groceries, control = list(verbose = F),
+                       parameter = list(support = 0.001, confidence = 0.25, minlen = 2 ))
+
+groc_rules_toplift <-  sort(groc_rules, by = "lift", decreasing = T)[1:10]
+inspect(groc_rules_toplift)
+
+groc_rules_topsupp <-  sort(groc_rules, by = "support", decreasing = T)[1:10]
+inspect(groc_rules_topsupp)
+
+#top 10 decreasing lift
+#inspect(sort(groc_rules, by = "lift", decreasing = T)[1:10]
+
+rules_soda1 <-  apriori(Groceries, parameter = list(support = .001,
+                                                    confidence= .15,
+                                                    minlen = 2,
+                                                    target = "rules"),
+                        appearance = list(default = 'rhs', lhs = 'soda'),
+                        control = list(verbose=F))
+inspect(sort(rules_soda1, by = 'support', decreasing = T)[1:5])
+
+plot(rules_soda1, method = 'graph', interactive =F, shading = NA)
+
+rules_soda2 <-  apriori(Groceries, parameter = list(support = .001,
+                                                    confidence= .15,
+                                                    minlen = 2,
+                                                    target = "rules"),
+                        appearance = list(default = 'lhs', rhs = 'soda'),
+                        control = list(verbose=F))
+plot(rules_soda2, method = 'graph', interactive =T, shading = NA)
+
+plot(subset(groc_rules, lift >5))
+
+library(viridisLite)
+plot(groc_rules_toplift, method = "paracoord", control = list(col= viridis(10), reorder = T))
+
+
+#install.packages("arulesViz")
+
+library("arulesViz") # for visualizing rules
+
+# making rules using apriori algorithm 
+# Keep changing support and confidence values to obtain different rules
+
+# Building rules using apriori algorithm
+arules<-apriori(Groceries,parameter = list(support=0.002,confidence=0.5,minlen=2))
+arules
+rules <-  apriori(as.matrix(mydata[,2:7]),parameter=list(support=.2,confidence=0.7,minlen=3)) 
+
+inspect(head(sort(arules,by="lift"))) # to view we use inspect 
+# Viewing rules based on lift value
+
+# Overal quality 
+head(quality(arules))
+
+
+# Different Ways of Visualizing Rules
+plot(arules)
+# {if(.Platform$OS.type == "windows")
+#   win.metafile("Rplot%02d.wmf", pointsize = 10)}
+
+
+windows()
+plot(arules,method="grouped")
+plot(arules[1:30],method = "graph") # for good visualization try plotting only few rules
+plot(arules[1:10],method = "graph") # for good visualization try plotting only few rules
+
