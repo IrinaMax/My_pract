@@ -1,0 +1,39 @@
+install.packages('arules')
+install.packages("readxl")
+install.packages("xlsx")
+
+library(arules)
+library("readxl")
+library("xlsx")
+
+getwd()
+setwd("/Users/irinamax/Documents/R/Association_Rules/Association_Rules_rcode")
+
+mydata <- read_excel("Association Rules phone faceplates.xlsx",1) # Read xlsx file
+mydata
+
+# converting all in matrix and disclude the first column coz it is transections
+rules <-  apriori(as.matrix(mydata[,2:7]),parameter=list(support=.2,confidence=0.7,minlen=2)) 
+inspect(rules)
+inspect(sort(rules, by="lift"))
+inspect(head(sort(rules, by="lift")))
+
+#we can change the number of rules changing minlen
+rules <-  apriori(as.matrix(mydata[,2:7]),parameter=list(support=.2,confidence=0.7,minlen=3)) 
+rules
+
+inspect(rules)
+inspect(sort(rules, by="lift"))
+
+#The support value here and the conference value that you provide a is dependent on two factors.
+#1 - the domain expertise
+# 2 - experiment you performed
+
+#In Supermarkets there will be separate shelves for separate cost according to its pr
+#In Association rules we used Apriori Algorithm which helps to find Similar transactions with “IF Then” rule
+#Formula for calculating support is Total No on Transaction with Antecedents and Consequent upon the total number of transactions
+#Formula to calculate Lift Ratio is Confidence / Benchmark Confidence
+#If we Choose Random Data or there exists data quality issues then the association rules generated with be incorrect
+#For generating association rules the two criteria required are support & Confidence
+
+
